@@ -1,8 +1,7 @@
 FROM debian:12.4-slim
 
-ARG ANKICONNECT_VERSION=25.2.25.0
-ARG ANKI_VERSION=25.02.4
-ARG QT_VERSION=6
+ARG ANKICONNECT_VERSION=25.9.6.0
+ARG ANKI_VERSION=25.09
 
 RUN apt update && apt install --no-install-recommends -y \
         wget zstd mpv locales curl git ca-certificates jq libxcb-xinerama0 libxcb-cursor0 libnss3 \
@@ -14,10 +13,10 @@ RUN mkdir /app && chown -R anki /app
 COPY startup.sh /app/startup.sh
 WORKDIR /app
 
-RUN wget -O ANKI.tar.zst --no-check-certificate https://github.com/ankitects/anki/releases/download/${ANKI_VERSION}/anki-${ANKI_VERSION}-linux-qt${QT_VERSION}.tar.zst && \
+RUN wget -O ANKI.tar.zst --no-check-certificate https://github.com/ankitects/anki/releases/download/${ANKI_VERSION}/anki-launcher-${ANKI_VERSION}-linux.tar.zst && \
     zstd -d ANKI.tar.zst && rm ANKI.tar.zst && \
     tar xfv ANKI.tar && rm ANKI.tar
-WORKDIR /app/anki-${ANKI_VERSION}-linux-qt${QT_VERSION}
+WORKDIR /app/anki-launcher-${ANKI_VERSION}-linux
 
 # Run modified install.sh
 RUN cat install.sh | sed 's/xdg-mime/#/' | sh -

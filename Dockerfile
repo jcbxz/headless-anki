@@ -10,7 +10,7 @@ RUN useradd -m anki
 
 # Anki installation
 RUN mkdir /app && chown -R anki /app
-COPY install.sh /app/install.sh
+COPY install.exp /app/install.exp
 COPY startup.sh /app/startup.sh
 WORKDIR /app
 
@@ -41,8 +41,7 @@ VOLUME /export
 
 # Plugin installation
 WORKDIR /app
-# Run the anki launcher
-RUN install.sh
+
 RUN curl -L https://git.sr.ht/~foosoft/anki-connect/archive/${ANKICONNECT_VERSION}.tar.gz | \
     tar -xz && \
     mv anki-connect-${ANKICONNECT_VERSION} anki-connect
@@ -54,6 +53,11 @@ RUN jq '.webBindAddress = "0.0.0.0"' /data/addons21/AnkiConnectDev/config.json >
     mv tmp_file /data/addons21/AnkiConnectDev/config.json
 
 USER anki
+
+# Run the anki launcher and persist the output
+RUN mkdir -p $HOME/.local/share/AnkiProgramFiles && \
+    ln -s $HOME/.local/share/AnkiProgramFiles /data/AnkiProgramFiles
+RUN expect install.exp ${ANKI_VERSION}
 
 ENV ANKICONNECT_WILDCARD_ORIGIN="0"
 ENV QMLSCENE_DEVICE=softwarecontext

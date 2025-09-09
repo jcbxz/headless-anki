@@ -1,4 +1,5 @@
 #! /usr/bin/expect -f
+set ANKI_VERSION [lindex $argv 0]
 
 spawn anki -b /data
 expect "*2\) Choose a version*"
@@ -6,5 +7,5 @@ send -- "2\r"
 expect "Enter the version you want to install:"
 send -- "${ANKI_VERSION}\r"
 expect "Press enter to start Anki."
-send -- "\r"
+send -- "\r\r"
 expect eof

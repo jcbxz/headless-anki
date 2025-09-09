@@ -5,7 +5,7 @@ ARG ANKI_VERSION=25.09
 
 RUN apt update && apt install --no-install-recommends -y \
         wget zstd mpv locales curl git ca-certificates jq libxcb-xinerama0 libxcb-cursor0 libnss3 \
-        libxcomposite-dev libxdamage-dev libxtst-dev libxkbcommon-dev libxkbfile-dev
+        libxcomposite-dev libxdamage-dev libxtst-dev libxkbcommon-dev libxkbfile-dev expect libatomic1
 RUN useradd -m anki
 
 # Anki installation

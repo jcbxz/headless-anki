@@ -10,6 +10,7 @@ RUN useradd -m anki
 
 # Anki installation
 RUN mkdir /app && chown -R anki /app
+COPY install.sh /app/install.sh
 COPY startup.sh /app/startup.sh
 WORKDIR /app
 
@@ -40,6 +41,8 @@ VOLUME /export
 
 # Plugin installation
 WORKDIR /app
+# Run the anki launcher
+RUN install.sh
 RUN curl -L https://git.sr.ht/~foosoft/anki-connect/archive/${ANKICONNECT_VERSION}.tar.gz | \
     tar -xz && \
     mv anki-connect-${ANKICONNECT_VERSION} anki-connect

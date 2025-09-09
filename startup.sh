@@ -21,6 +21,6 @@ expect "Enter the version you want to install:"
 send -- "${ANKI_VERSION}\r"
 expect "Press enter to start Anki."
 send -- "\r"
-interactive
+expect eof
 
 anki -b /data

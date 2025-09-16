@@ -1,4 +1,4 @@
-FROM debian:12.4-slim
+FROM ghcr.io/linuxserver/baseimage-kasmvnc:debianbookworm
 
 ARG ANKICONNECT_VERSION=25.9.6.0
 ARG ANKI_VERSION=25.09
@@ -6,17 +6,19 @@ ARG ANKI_VERSION=25.09
 RUN apt update && apt install --no-install-recommends -y \
         wget zstd mpv locales curl git ca-certificates jq libxcb-xinerama0 libxcb-cursor0 libnss3 \
         libxcomposite-dev libxdamage-dev libxtst-dev libxkbcommon-dev libxkbfile-dev expect libatomic1
-RUN useradd -m anki
 
-# Anki installation
-RUN mkdir /app && chown -R anki /app
-COPY install.exp /app/install.exp
-COPY startup.sh /app/startup.sh
+COPY ./root /
+
+VOLUME /config
+VOLUME /data
+VOLUME /export
+
 WORKDIR /app
 
 RUN wget -O ANKI.tar.zst --no-check-certificate https://github.com/ankitects/anki/releases/download/${ANKI_VERSION}/anki-launcher-${ANKI_VERSION}-linux.tar.zst && \
     zstd -d ANKI.tar.zst && rm ANKI.tar.zst && \
     tar xfv ANKI.tar && rm ANKI.tar
+
 WORKDIR /app/anki-launcher-${ANKI_VERSION}-linux
 
 # Run modified install.sh
@@ -26,44 +28,29 @@ RUN cat install.sh | sed 's/xdg-mime/#/' | sh -
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     dpkg-reconfigure --frontend=noninteractive locales && \
     update-locale LANG=en_US.UTF-8
+
 ENV LANG=en_US.UTF-8 \ LANGUAGE=en_US \ LC_ALL=en_US.UTF-8
 
-RUN apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
-# Anki volumes
-ADD data /data
-RUN mkdir /data/addons21 && chown -R anki /data
-VOLUME /data
-
-RUN mkdir /export && chown -R anki /export
-VOLUME /export
-
-# Plugin installation
 WORKDIR /app
 
+# Run the anki launcher
+RUN expect launcher.exp ${ANKI_VERSION}
+
+# Plugin installation
 RUN curl -L https://git.sr.ht/~foosoft/anki-connect/archive/${ANKICONNECT_VERSION}.tar.gz | \
     tar -xz && \
     mv anki-connect-${ANKICONNECT_VERSION} anki-connect
-RUN chown -R anki:anki /app/anki-connect/plugin && \
-    ln -s -f /app/anki-connect/plugin /data/addons21/AnkiConnectDev
+
+RUN ln -s -f /app/anki-connect/plugin /data/addons21/AnkiConnectDev
 
 # Edit AnkiConnect config
 RUN jq '.webBindAddress = "0.0.0.0"' /data/addons21/AnkiConnectDev/config.json > tmp_file && \
     mv tmp_file /data/addons21/AnkiConnectDev/config.json
 
-USER anki
-
-# Run the anki launcher and persist the output
-RUN mkdir -p $HOME/.local/share/AnkiProgramFiles && \
-    ln -s $HOME/.local/share/AnkiProgramFiles /data/AnkiProgramFiles
-RUN expect install.exp ${ANKI_VERSION}
-
 ENV ANKICONNECT_WILDCARD_ORIGIN="0"
-ENV QMLSCENE_DEVICE=softwarecontext
 ENV FONTCONFIG_PATH=/etc/fonts
 ENV QT_XKB_CONFIG_ROOT=/usr/share/X11/xkb
-ENV QT_QPA_PLATFORM="vnc"
-# Could also use "offscreen"
 
-CMD ["/bin/bash", "startup.sh"]
+EXPOSE 3000 8765

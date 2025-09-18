@@ -3,8 +3,7 @@ FROM debian:12.4-slim
 ARG ANKICONNECT_VERSION=25.9.6.0
 ARG ANKI_VERSION=25.09
 
-RUN apt-get update && \
-    apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         wget \
         expect \
         sqlite3 \
@@ -19,39 +18,27 @@ RUN apt-get update && \
         libnss3 \
         libxdamage1 \
         libasound2 \
-        python3-xdg && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        python3-xdg \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN ls -la
+WORKDIR /build
 
-WORKDIR /build/launcher
-
-RUN wget https://github.com/ankitects/anki/releases/download/${ANKI_VERSION}/anki-launcher-${ANKI_VERSION}-linux.tar.zst -O - | \
-    tar --zstd -xvf - -C . --strip-components=1
-
-RUN ls -la
-
-RUN cat install.sh | sed 's/xdg-mime/#/' | sh -
+RUN wget https://github.com/ankitects/anki/releases/download/${ANKI_VERSION}/anki-launcher-${ANKI_VERSION}-linux.tar.zst -O - \
+    | tar --zstd -xvf - -C . --strip-components=1 \
+    && cat install.sh | sed 's/xdg-mime/#/' | sh -
 
 COPY ./launcher.exp launcher.exp
 RUN expect launcher.exp ${ANKI_VERSION}
 
-WORKDIR /build/anki-connect
-
-RUN wget https://git.sr.ht/~foosoft/anki-connect/archive/${ANKICONNECT_VERSION}.tar.gz -O - | \
-    tar -xzvf - -C . --strip-components=1
-
-RUN ls -la
-
-WORKDIR /config/addons21
-RUN mv /build/anki-connect AnkiConnectDev
-
 WORKDIR /config
+
 RUN rm -rf /build
 
-VOLUME /config
-EXPOSE 5900 8765
+RUN mkdir -p addons21/AnkiConnectDev \
+    && wget https://git.sr.ht/~foosoft/anki-connect/archive/${ANKICONNECT_VERSION}.tar.gz -O - \
+    | tar -xzvf - -C addons21/AnkiConnectDev --strip-components=1
 
-ENV QT_QPA_PLATFORM="vnc"
+VOLUME /config
+EXPOSE 8765
+
 CMD ["anki"]

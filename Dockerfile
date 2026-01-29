@@ -1,7 +1,8 @@
 FROM debian:12.4-slim
 
 ARG ANKICONNECT_VERSION=25.9.6.0
-ARG ANKI_VERSION=25.09
+ARG ANKI_LAUNCHER_VERSION=25.09
+ARG ANKI_VERSION=25.09.2
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         wget \
@@ -32,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         mecab \
         mpv \
         locales \
+        fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m anki
@@ -39,15 +41,15 @@ RUN useradd -m anki
 WORKDIR /build
 
 # Download Anki
-ADD https://github.com/ankitects/anki/releases/download/${ANKI_VERSION}/anki-launcher-${ANKI_VERSION}-linux.tar.zst .
-RUN tar --zstd -xvf anki-launcher-${ANKI_VERSION}-linux.tar.zst
+ADD https://github.com/ankitects/anki/releases/download/${ANKI_LAUNCHER_VERSION}/anki-launcher-${ANKI_LAUNCHER_VERSION}-linux.tar.zst .
+RUN tar --zstd -xvf anki-launcher-${ANKI_LAUNCHER_VERSION}-linux.tar.zst
 
 # Download AnkiConnect
 ADD https://git.sr.ht/~foosoft/anki-connect/archive/${ANKICONNECT_VERSION}.tar.gz .
 RUN tar -xzvf ${ANKICONNECT_VERSION}.tar.gz
 
 # Install Anki
-WORKDIR anki-launcher-${ANKI_VERSION}-linux
+WORKDIR anki-launcher-${ANKI_LAUNCHER_VERSION}-linux
 RUN cat install.sh | sed 's/xdg-mime/#/' | sh -
 
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
@@ -59,19 +61,23 @@ WORKDIR /config
 RUN mkdir -p addons21/AnkiConnect
 RUN mv /build/anki-connect-${ANKICONNECT_VERSION}/plugin addons21/AnkiConnect
 
-RUN chown -R anki .
+RUN mkdir /data
+
+RUN chown -R anki /config /data
 RUN rm -rf /build
 
 USER anki
 
+ENV ANKI_LAUNCHER_VENV_ROOT=/data
 ENV ANKI_BASE=/config
-ENV QT_QPA_PLATFORM=vnc
-ENV LANG=en_US.UTF-8 LANGUAGE=en_US LC_ALL=en_US.UTF-8
-ENV FONTCONFIG_PATH=/etc/fonts
 
 # Run the first time launcher
 COPY ./launcher.exp launcher.exp
 RUN expect launcher.exp ${ANKI_VERSION}
+
+ENV QT_QPA_PLATFORM=vnc
+ENV LANG=en_US.UTF-8 LANGUAGE=en_US LC_ALL=en_US.UTF-8
+ENV FONTCONFIG_PATH=/etc/fonts
 
 VOLUME /config
 EXPOSE 8765 5900
